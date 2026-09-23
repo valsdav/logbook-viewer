@@ -1,0 +1,11 @@
+# systemd user unit for the logbook viewer server (see README, "Run as a service")
+[Unit]
+Description=Logbook viewer server (http://127.0.0.1:8765/)
+
+[Service]
+ExecStart=/usr/bin/python3 /home/USER/code/logbook-viewer/server.py
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

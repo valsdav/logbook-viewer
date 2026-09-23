@@ -83,17 +83,35 @@ Open http://localhost:8765/.
 - Left column: the entries in view and their sections. Click to scroll.
 - Filters live in the URL hash, so a reload or a bookmark keeps them.
 
+## Run as a service (Linux, optional)
+
+`desktop/logbook.service` is a systemd user unit. It starts the server at login and restarts it on failure. The desktop window then only connects to it.
+
+```bash
+sed "s|/home/USER/code/logbook-viewer|$PWD|g" desktop/logbook.service > ~/.config/systemd/user/logbook.service
+systemctl --user daemon-reload
+systemctl --user enable --now logbook.service
+```
+
+```bash
+systemctl --user status logbook.service      # state
+journalctl --user -u logbook.service -f      # log
+systemctl --user restart logbook.service     # after a change to config.json or server.py
+```
+
+The server reads the files on every request, so a logbook on a network file system that needs a token (AFS, Kerberos) shows "cannot read" until the token exists, then recovers by itself. If it does not, restart the service.
+
 ## A desktop window (Linux, optional)
 
 `desktop/logbook-app` opens the viewer in its own window: a small PySide6 script (`QWebEngineView`, F5 reloads), so the taskbar shows Logbook with its own icon instead of a browser. When nothing listens on the configured port it starts `server.py` itself, so the launcher is all you need. It uses the system `python3` with PySide6 (Fedora: `python3-pyside6`).
 
 ```bash
 ln -s "$PWD/desktop/logbook-app" ~/.local/bin/logbook-app
-cp desktop/logbook.desktop ~/.local/share/applications/
 cp desktop/logbook.svg ~/.local/share/icons/hicolor/scalable/apps/
+sed "s|/home/USER|$HOME|g" desktop/logbook.desktop > ~/.local/share/applications/logbook.desktop
 ```
 
-The argument is a config path or an address, else `$LOGBOOK_URL`, else `config.json` next to `server.py`:
+The launcher needs absolute paths: the desktop session's PATH does not contain `~/.local/bin`. The argument is a config path or an address, else `$LOGBOOK_URL`, else `config.json` next to `server.py`:
 
 ```bash
 logbook-app                           # own server from ./config.json

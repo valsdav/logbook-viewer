@@ -3,9 +3,10 @@ Type=Application
 Name=Logbook
 GenericName=Development logbook viewer
 Comment=Browse the LOGBOOK.md files of your projects
+# absolute paths: the desktop session's PATH has no ~/.local/bin (see README for the install step)
 # add a config path or an address after the command; none = ./config.json next to server.py
-Exec=logbook-app
-Icon=logbook
+Exec=/home/USER/.local/bin/logbook-app
+Icon=/home/USER/.local/share/icons/hicolor/scalable/apps/logbook.svg
 StartupWMClass=logbook
-Categories=Office;Development;
+Categories=Office;
 Terminal=false
