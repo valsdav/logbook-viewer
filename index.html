@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logbook</title>
+<style>
+  :root { --bg:#fff; --fg:#222; --muted:#777; --line:#e3e3e3; --side:#f6f7f8; --code:#1e2229; --codefg:#e6e6e6;
+          --acc:#2f6fed; --h0:#ebedf0; --h1:#c6e48b; --h2:#7bc96f; --h3:#239a3b; --h4:#196127; --mark:#fff3a3; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme=light]) {
+    --bg:#15171a; --fg:#e4e4e4; --muted:#999; --line:#2c2f34; --side:#1b1e22; --code:#0d0f12; --codefg:#dcdcdc;
+    --h0:#23262b; --h1:#0e4429; --h2:#006d32; --h3:#26a641; --h4:#39d353; --mark:#6b5b00; } }
+  * { box-sizing:border-box }
+  body { margin:0; font:15px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--fg) }
+  /* top bar */
+  header { position:sticky; top:0; z-index:2; background:var(--side); border-bottom:1px solid var(--line); padding:8px 16px; display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+  header h1 { font-size:17px; margin:0 8px 0 0 }
+  header select, header input { padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit }
+  #q { flex:1 1 260px; min-width:160px }
+  #q::placeholder { color:var(--muted) }
+  button { font:inherit; padding:5px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); cursor:pointer }
+  button:hover { border-color:var(--acc) }
+  .chk { display:flex; gap:4px; align-items:center; font-size:13px; white-space:nowrap }
+  #status { font-size:12px; color:var(--muted); margin-left:auto; white-space:nowrap }
+  /* heatmap strip */
+  #heatbar { border-bottom:1px solid var(--line); padding:0 16px }
+  #heatbar summary { cursor:pointer; font-size:12px; color:var(--muted); padding:6px 0 }
+  #heatbar summary select { margin-left:4px }
+  #heatbar .strip { display:flex; gap:16px; padding:2px 0 10px; overflow-x:auto }
+  #heatbar select { font:inherit; padding:1px 4px; margin-left:4px; background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:4px }
+  .months { display:grid; grid-template-columns:repeat(53, 13px); font-size:10px; color:var(--muted); height:14px }
+  .cells { display:grid; grid-auto-flow:column; grid-template-rows:repeat(7, 13px); grid-auto-columns:13px }
+  .cells div { width:11px; height:11px; border-radius:2px; background:var(--h0); cursor:pointer }
+  .cells .l1{background:var(--h1)} .cells .l2{background:var(--h2)} .cells .l3{background:var(--h3)} .cells .l4{background:var(--h4)}
+  .cells .sel { outline:2px solid var(--acc); outline-offset:-1px }
+  .cells .pad { visibility:hidden }
+  /* entries */
+  main { padding:16px 28px; max-width:1360px; margin:0 auto; display:flex; gap:28px; align-items:flex-start }
+  #content { flex:1; min-width:0; max-width:1000px }
+  #toc { width:300px; flex:none; position:sticky; top:calc(var(--top, 56px) + 16px); max-height:calc(100vh - var(--top, 56px) - 32px); overflow:auto; font-size:13px }
+  #toc:empty { display:none }
+  #toc ul { list-style:none; margin:0; padding:0 } #toc ul ul { padding-left:12px; margin-bottom:8px }
+  #toc a { display:block; color:inherit; text-decoration:none; padding:2px 6px; border-radius:4px; border-left:2px solid var(--line); overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+  #toc a:hover { border-color:var(--acc); background:var(--side) }
+  #toc li > a { font-weight:600 } #toc ul ul a { font-weight:400; color:var(--muted); font-size:12px }
+  #toc time { font-size:11px; margin-right:4px }
+  article, .sec { scroll-margin-top:calc(var(--top, 56px) + 12px) }
+  @media (max-width:800px) { #toc { display:none } }
+  .dayhead { display:flex; align-items:center; gap:8px; margin:0 0 12px; font-size:18px }
+  .count { color:var(--muted); font-size:13px; margin-bottom:12px }
+  article { border:1px solid var(--line); border-radius:10px; margin-bottom:14px; padding:0 18px }
+  article summary { cursor:pointer; padding:12px 0; list-style:none }
+  article summary::-webkit-details-marker { display:none }
+  .head { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap }
+  .proj { font-size:11px; padding:1px 8px; border-radius:99px; background:var(--acc); color:#fff; white-space:nowrap }
+  time { color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap }
+  .head h2 { font-size:16px; margin:0; font-weight:600; flex:1 1 300px }
+  .hits { font-size:12px; color:var(--muted); white-space:nowrap }
+  .snips { margin:6px 0 0; padding:0; list-style:none; font-size:13px; color:var(--muted) }
+  .snips li { white-space:pre-wrap; overflow:hidden; text-overflow:ellipsis; border-left:2px solid var(--line); padding-left:8px; margin:2px 0 }
+  .snips code { font-family:ui-monospace, monospace; font-size:12px }
+  .body { padding:0 0 12px; border-top:1px solid var(--line) }
+  .body img { max-width:100%; border-radius:6px }
+  .body code { font-size:13px; background:var(--side); padding:1px 4px; border-radius:4px }
+  .body pre { position:relative; background:var(--code); color:var(--codefg); padding:12px 14px; border-radius:8px; overflow:auto; border-left:4px solid var(--acc) }
+  .body pre code { background:none; padding:0; color:inherit }
+  .body pre .copy { position:absolute; top:6px; right:6px; font-size:12px; padding:2px 8px; background:var(--code); color:var(--codefg); border-color:#555 }
+  .cmdonly .body > :not(pre) { display:none }  /* ponytail: hides nested pre inside lists too; entries keep code blocks top-level */
+  .cmdonly article:not(.hascmd) { display:none }
+  mark { background:var(--mark); color:inherit; border-radius:2px }
+  .empty { color:var(--muted); padding:40px 0; text-align:center }
+  @media (max-width:800px) { main{padding:16px} }
+</style>
+</head>
+<body>
+<header>
+  <h1>Logbook</h1>
+  <select id="project"><option value="">All projects</option></select>
+  <input id="q" type="search" placeholder='search: word1 word2 "exact phrase"  (all terms must match)'>
+  <input id="from" type="date"><span>–</span><input id="to" type="date">
+  <button id="today">Today</button><button id="clear">Clear</button>
+  <label class="chk"><input type="checkbox" id="cmdonly">commands only</label>
+  <span id="status"></span>
+</header>
+<details id="heatbar" open><summary>Activity <select id="year"></select></summary><div class="strip"><div id="heat"></div></div></details>
+<main>
+  <nav id="toc"></nav>
+  <div id="content">
+    <div id="dayhead"></div>
+    <div id="count" class="count"></div>
+    <div id="list"></div>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let DATA = {version: null, projects: [], entries: []};
+const st = {project: '', q: '', from: '', to: '', year: ''};
+
+// ---- state <-> url hash (reload keeps filters)
+const readHash = () => { const h = new URLSearchParams(location.hash.slice(1)); for (const k in st) st[k] = h.get(k) || ''; };
+const writeHash = () => { const h = new URLSearchParams(); for (const k in st) if (st[k]) h.set(k, st[k]); history.replaceState(null, '', '#' + h); };
+
+// ---- data
+async function load() {
+  try {
+    const d = await (await fetch('/api/entries')).json();
+    if (d.version === DATA.version) return;
+    DATA = d; render();
+    $('status').textContent = 'updated ' + new Date().toLocaleTimeString();
+  } catch (e) { $('status').textContent = 'server unreachable'; }
+}
+
+// ---- search: terms are words or "quoted phrases"; every term must occur (case-insensitive)
+const terms = q => [...q.matchAll(/"([^"]+)"|(\S+)/g)].map(m => (m[1] || m[2]).toLowerCase()).filter(Boolean);
+const esc = s => s.replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const reOf = ts => new RegExp(ts.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'gi');
+
+function matches(e, ts) {
+  const text = (e.title + '\n' + e.body).toLowerCase();
+  return ts.every(t => text.includes(t));
+}
+function inScope(e) { return (!st.project || e.project === st.project) && (!st.from || e.date >= st.from) && (!st.to || e.date <= st.to); }
+
+// lines of the entry that contain a term, trimmed around the first match; returns [{html}], and total hit count
+function snippets(e, ts) {
+  const re = reOf(ts), out = [];
+  let hits = 0;
+  for (const line of e.body.split('\n')) {
+    const m = [...line.matchAll(re)];
+    if (!m.length) continue;
+    hits += m.length;
+    if (out.length >= 5) continue;
+    const a = Math.max(0, m[0].index - 60), s = (a ? '…' : '') + line.slice(a, a + 170) + (line.length > a + 170 ? '…' : '');
+    out.push(esc(s).replace(re, x => `<mark>${x}</mark>`));
+  }
+  return {out, hits};
+}
+
+// ---- render
+function render() {
+  const sel = $('project');
+  sel.innerHTML = '<option value="">All projects</option>' + DATA.projects.map(p => `<option>${esc(p)}</option>`).join('');
+  sel.value = st.project;
+  if (document.activeElement !== $('q')) $('q').value = st.q;
+  $('from').value = st.from; $('to').value = st.to;
+  const ts = terms(st.q), searching = ts.length > 0;
+  let ents = DATA.entries.filter(e => inScope(e) && (!searching || matches(e, ts)))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id, undefined, {numeric: true}));
+  renderHeat(ts);
+  const day = st.from && st.from === st.to;
+  $('dayhead').innerHTML = day ? `<h2 class="dayhead"><button data-d="-1">‹</button>${st.from}<button data-d="1">›</button>
+     <span style="font-size:13px;color:var(--muted)">${new Date(st.from).toLocaleDateString(undefined, {weekday: 'long', timeZone: 'UTC'})}</span></h2>` : '';
+  let hitsTotal = 0;
+  const list = $('list');
+  list.innerHTML = '';
+  const toc = [];
+  ents.forEach((e, i) => {
+    const a = document.createElement('article');
+    a.id = 'e' + i;
+    let snip = '';
+    if (searching) {
+      const {out, hits} = snippets(e, ts); hitsTotal += hits;
+      snip = `<span class="hits">${hits} hit${hits === 1 ? '' : 's'}</span><ul class="snips">${out.map(s => `<li><code>${s}</code></li>`).join('')}</ul>`;
+    }
+    a.innerHTML = `<details${searching ? '' : ' open'}><summary><div class="head"><span class="proj">${esc(e.project)}</span><time>${e.date}</time><h2>${esc(e.title)}</h2>${searching ? snip.split('<ul')[0] : ''}</div>${searching ? '<ul' + snip.split('<ul')[1] : ''}</summary>
+      <div class="body">${window.marked ? marked.parse(e.body) : '<pre>' + esc(e.body) + '</pre>'}</div></details>`;
+    a.querySelectorAll('img').forEach(i => { const s = i.getAttribute('src') || ''; if (!/^([a-z]+:|\/)/i.test(s)) i.src = `/files/${encodeURIComponent(e.project)}/${s}`; });
+    a.querySelectorAll('pre').forEach(p => { const b = document.createElement('button'); b.className = 'copy'; b.textContent = 'copy'; p.prepend(b); });
+    if (a.querySelector('pre')) a.classList.add('hascmd');
+    if (searching) { highlight(a.querySelector('.body'), ts); highlight(a.querySelector('.head h2'), ts); }
+    // sections = top-level paragraphs that start with bold text ("**What was done**", "**Context:** ...")
+    const secs = [...a.querySelectorAll('.body > p > strong:first-child')].map((sEl, j) => {
+      sEl.parentElement.id = `e${i}s${j}`; sEl.parentElement.classList.add('sec');
+      return {id: sEl.parentElement.id, t: sEl.textContent.replace(/:$/, '')};
+    });
+    toc.push({id: a.id, e, secs});
+    list.appendChild(a);
+  });
+  $('toc').innerHTML = searching ? '' : '<ul>' + toc.map(t => `<li><a href="#" data-to="${t.id}" title="${esc(t.e.title)}">${day ? '' : `<time>${t.e.date}</time>`}${esc(t.e.title)}</a>
+    <ul>${t.secs.map(x => `<li><a href="#" data-to="${x.id}">${esc(x.t)}</a></li>`).join('')}</ul></li>`).join('') + '</ul>';
+  document.documentElement.style.setProperty('--top', document.querySelector('header').offsetHeight + 'px');
+  if (!ents.length) { list.innerHTML = '<div class="empty">nothing here</div>'; $('toc').innerHTML = ''; }
+  $('count').textContent = `${ents.length} entr${ents.length === 1 ? 'y' : 'ies'}` + (searching ? `, ${hitsTotal} hits for ${ts.map(t => `"${t}"`).join(' AND ')}` : '');
+}
+
+function renderHeat(ts) {
+  const years = [...new Set(DATA.entries.map(e => e.date.slice(0, 4)).filter(Boolean))].sort().reverse();
+  if (!years.includes(st.year)) st.year = years[0] || '';
+  $('year').innerHTML = years.map(y => `<option>${y}</option>`).join(''); $('year').value = st.year;
+  const counts = {};
+  for (const e of DATA.entries) if ((!st.project || e.project === st.project) && (!ts.length || matches(e, ts))) counts[e.date] = (counts[e.date] || 0) + 1;
+  const y = +st.year, start = new Date(Date.UTC(y, 0, 1)), pad = start.getUTCDay();
+  let months = '', cells = '';
+  for (let i = 0; i < pad; i++) cells += '<div class="pad"></div>';
+  for (let d = new Date(start); d.getUTCFullYear() === y; d.setUTCDate(d.getUTCDate() + 1)) {
+    const iso = d.toISOString().slice(0, 10), n = counts[iso] || 0;
+    if (d.getUTCDate() === 1) months += `<span style="grid-column:${Math.floor((pad + dayOfYear(d)) / 7) + 1}">${d.toLocaleString(undefined, {month: 'short', timeZone: 'UTC'})}</span>`;
+    cells += `<div class="l${Math.min(n, 4)}${iso === st.from && st.from === st.to ? ' sel' : ''}" data-d="${iso}" title="${iso}: ${n}"></div>`;
+  }
+  $('heat').innerHTML = `<div class="months">${months}</div><div class="cells">${cells}</div>`;
+}
+const dayOfYear = d => Math.round((d - Date.UTC(d.getUTCFullYear(), 0, 1)) / 864e5);
+const localISO = (d = new Date()) => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+
+function highlight(root, ts) {
+  if (!ts.length || !root) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), nodes = [];
+  while (w.nextNode()) nodes.push(w.currentNode);
+  const re = reOf(ts);
+  for (const n of nodes) {
+    if (!re.test(n.data)) continue;
+    const span = document.createElement('span');
+    span.innerHTML = esc(n.data).replace(re, m => `<mark>${m}</mark>`);
+    n.replaceWith(span);
+  }
+}
+
+// ---- events
+const upd = () => { writeHash(); render(); };
+let tmr;
+$('project').onchange = e => { st.project = e.target.value; upd(); };
+$('q').oninput = e => { st.q = e.target.value; clearTimeout(tmr); tmr = setTimeout(upd, 150); };
+$('from').onchange = e => { st.from = e.target.value; upd(); };
+$('to').onchange = e => { st.to = e.target.value; upd(); };
+$('year').onchange = e => { st.year = e.target.value; upd(); };
+$('today').onclick = () => { st.from = st.to = localISO(); st.year = st.from.slice(0, 4); upd(); };
+$('clear').onclick = () => { st.from = st.to = st.q = ''; upd(); };
+$('cmdonly').onchange = e => document.body.classList.toggle('cmdonly', e.target.checked);
+$('heat').onclick = e => { const d = e.target.dataset.d; if (d) { st.from = st.to = d; upd(); } };
+$('dayhead').onclick = e => {
+  const s = +e.target.dataset.d; if (!s) return;
+  const d = new Date(st.from); d.setUTCDate(d.getUTCDate() + s);
+  st.from = st.to = d.toISOString().slice(0, 10); st.year = st.from.slice(0, 4); upd();
+};
+$('list').onclick = async e => {
+  if (!e.target.classList.contains('copy')) return;
+  const text = e.target.parentElement.querySelector('code').textContent;
+  try { await navigator.clipboard.writeText(text); }
+  catch { const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+  e.target.textContent = 'copied'; setTimeout(() => e.target.textContent = 'copy', 1200);
+};
+$('toc').onclick = e => { const id = e.target.closest('a')?.dataset.to; if (id) { e.preventDefault(); $(id).scrollIntoView({block: 'start'}); } };
+$('heatbar').ontoggle = e => { try { localStorage.heat = e.target.open ? '1' : '0'; } catch {} };
+try { if (localStorage.heat === '0') $('heatbar').open = false; } catch {}
+window.onresize = () => document.documentElement.style.setProperty('--top', document.querySelector('header').offsetHeight + 'px');
+document.onkeydown = e => { if (e.key === '/' && document.activeElement !== $('q')) { e.preventDefault(); $('q').focus(); } };
+window.onhashchange = () => { readHash(); render(); };
+
+readHash(); load(); setInterval(load, 5000);
+</script>
+</body>
+</html>

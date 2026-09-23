@@ -1,0 +1,32 @@
+--- SKILL.md	2026-09-20 16:49:57.780567709 +0200
++++ SKILL.md	2026-09-23 22:02:59.928785836 +0200
+@@ -50,11 +50,28 @@
+ **Results**
+ - Outcomes of tests or studies, with key numbers. (Omit if none.)
+ 
++**Commands**
++```bash
++# one comment line per step, then the command exactly as it was run
++python submit_job.py -c $CFG/config.yaml -s fnf --version v1
++```
++
+ **Open questions / next steps**
+ - What remains, as stated by the user or evident from unfinished work.
+ ```
+ 
+-Within one day, a second invocation adds a new entry with its own title (e.g. "2026-09-16 — # entry: ..."), rather than editing the earlier one.
++Within one day, a second invocation adds a new entry with its own title (e.g. "2026-09-16 — entry 2: ..."), rather than editing the earlier one. The heading is always `## YYYY-MM-DD — title` on one line: it is what the viewer parses.
++
++## Commands
++
++Commands are copied from the logbook later, so keep them machine-clean:
++
++- Every command the user may re-run goes in a fenced ```` ```bash ```` block, never inline in prose and never inside a list item. Top-level blocks only.
++- One block per logical chain (e.g. "the v8b chain"); inside it, a `# ` comment line before each step. No prose inside the block, no `$ ` prompts, no `...` placeholders: the block must run as pasted.
++- Variables the commands depend on (`BASE=`, `CFG=`) are defined at the top of the block, not assumed from an earlier entry.
++- Inline code (`` `name` ``) is for file names, config keys and function names only, never for a command.
++- If a command was later corrected, repeat the full corrected block in the new entry ("Correction to ..."), do not describe the edit in words.
++- Images: `![caption](docs/logbook_img/<date>-<slug>.png)`, path relative to the repository root.
+ 
+ ## Style
+ 
