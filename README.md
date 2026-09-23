@@ -83,6 +83,24 @@ Open http://localhost:8765/.
 - Left column: the entries in view and their sections. Click to scroll.
 - Filters live in the URL hash, so a reload or a bookmark keeps them.
 
+## A desktop window (Linux, optional)
+
+`desktop/logbook-app` opens the viewer in its own window: a small PySide6 script (`QWebEngineView`, F5 reloads), so the taskbar shows Logbook with its own icon instead of a browser. When nothing listens on the configured port it starts `server.py` itself, so the launcher is all you need. It uses the system `python3` with PySide6 (Fedora: `python3-pyside6`).
+
+```bash
+ln -s "$PWD/desktop/logbook-app" ~/.local/bin/logbook-app
+cp desktop/logbook.desktop ~/.local/share/applications/
+cp desktop/logbook.svg ~/.local/share/icons/hicolor/scalable/apps/
+```
+
+The argument is a config path or an address, else `$LOGBOOK_URL`, else `config.json` next to `server.py`:
+
+```bash
+logbook-app                           # own server from ./config.json
+logbook-app ~/my-logbooks.json        # own server from another config
+logbook-app http://my-server:8765/    # only open an address
+```
+
 ## Develop
 
 - `python3 test_parse.py` checks the entry parser.

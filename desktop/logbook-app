@@ -1,0 +1,67 @@
+#!/usr/bin/python3
+"""Logbook viewer in its own window (PySide6 QWebEngineView), app ID "logbook".
+
+Starts the local server itself when nothing listens on the configured port,
+so one launcher is enough. Otherwise it only opens the address.
+
+    logbook-app                          # ./config.json next to server.py
+    logbook-app /path/to/config.json     # another config
+    logbook-app http://host:8765/        # only open an address (no server)
+    LOGBOOK_URL=http://host:8765/ logbook-app
+"""
+import os
+import socket
+import sys
+import threading
+
+from PySide6.QtCore import QUrl
+from PySide6.QtGui import QDesktopServices, QKeySequence, QShortcut
+from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
+from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWidgets import QApplication
+
+HERE = os.path.dirname(os.path.realpath(__file__))
+
+
+class Page(QWebEnginePage):
+    """Addresses the web engine does not know (obsidian://…) go to the desktop."""
+
+    KNOWN = ("http", "https", "file", "about", "data", "blob")
+
+    def acceptNavigationRequest(self, url, nav_type, is_main_frame):
+        if url.scheme() not in self.KNOWN:
+            QDesktopServices.openUrl(url)
+            return False
+        return super().acceptNavigationRequest(url, nav_type, is_main_frame)
+
+
+def listening(port):
+    with socket.socket() as s:
+        return s.connect_ex(("127.0.0.1", port)) == 0
+
+
+args = [a for a in sys.argv[1:] if not a.startswith("-")]  # Qt keeps its own -options
+url = args[0] if args and args[0].startswith("http") else os.environ.get("LOGBOOK_URL")
+if not url:
+    sys.path.insert(0, os.path.dirname(HERE))
+    import server  # the viewer's own server.py
+
+    cfg = args[0] if args else os.path.join(os.path.dirname(HERE), "config.json")
+    port = server.json.load(open(cfg)).get("port", 8765)
+    if not listening(port):
+        threading.Thread(target=server.make_server(cfg).serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{port}/"
+
+app = QApplication(sys.argv)
+app.setApplicationName("logbook")
+app.setDesktopFileName("logbook")  # Wayland app ID → logbook.desktop
+
+profile = QWebEngineProfile("logbook", app)  # named = persistent storage (localStorage: heatmap state)
+view = QWebEngineView()
+view.setPage(Page(profile, view))
+view.titleChanged.connect(view.setWindowTitle)
+QShortcut(QKeySequence.StandardKey.Refresh, view, view.reload)
+view.load(QUrl(url))
+view.resize(1400, 900)
+view.show()
+sys.exit(app.exec())

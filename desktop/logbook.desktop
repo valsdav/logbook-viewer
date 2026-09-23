@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Logbook
+GenericName=Development logbook viewer
+Comment=Browse the LOGBOOK.md files of your projects
+# add a config path or an address after the command; none = ./config.json next to server.py
+Exec=logbook-app
+Icon=logbook
+StartupWMClass=logbook
+Categories=Office;Development;
+Terminal=false

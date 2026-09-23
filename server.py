@@ -77,14 +77,19 @@ class Handler(SimpleHTTPRequestHandler):
         pass
 
 
+def make_server(cfg_path=None):
+    """Configure the handler from the config file and return a bound (not yet running) HTTPServer."""
+    cfg = json.load(open(cfg_path or os.path.join(HERE, "config.json")))
+    Handler.projects = {p["name"]: os.path.expanduser(p["path"]) for p in cfg["projects"]}
+    return HTTPServer(("127.0.0.1", cfg.get("port", 8765)), partial(Handler, directory=HERE))
+
+
 def main():
     if len(sys.argv) > 2 and sys.argv[1] == "--parse":
         return print(json.dumps(parse("x", sys.argv[2]), indent=1, ensure_ascii=False))
-    cfg = json.load(open(sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "config.json")))
-    Handler.projects = {p["name"]: os.path.expanduser(p["path"]) for p in cfg["projects"]}
-    port = cfg.get("port", 8765)
-    print(f"http://localhost:{port}/  ({len(Handler.projects)} logbooks)")
-    HTTPServer(("127.0.0.1", port), partial(Handler, directory=HERE)).serve_forever()
+    srv = make_server(sys.argv[1] if len(sys.argv) > 1 else None)
+    print(f"http://localhost:{srv.server_port}/  ({len(Handler.projects)} logbooks)")
+    srv.serve_forever()
 
 
 if __name__ == "__main__":
