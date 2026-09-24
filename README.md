@@ -9,7 +9,7 @@ This repository holds the two halves of that workflow:
 | `skill/logbook/SKILL.md` | The Claude Code skill that **writes** entries. Defines the entry format. |
 | `server.py`, `index.html` | A local web viewer that **reads** the logbooks of several projects. |
 
-The skill and the viewer share one contract: the entry format below. Nothing else links them. The viewer never writes.
+The skill and the viewer share one contract: the entry format below. Nothing else links them. The viewer only appends, never edits.
 
 ## Scope
 
@@ -19,9 +19,10 @@ In scope:
 - Full-text search over all projects or one project, with hit counts and snippets.
 - Commands shown as separate blocks with a copy button, apart from the prose.
 - Auto refresh: a new entry appears within 5 s, no reload.
+- Add an entry by hand: the "+ Entry" button opens a form with the skill's template and appends to the chosen logbook.
 
 Out of scope, by design:
-- Editing. The Markdown files are the source of truth; edit them with the skill or a text editor.
+- Editing past entries. The viewer only appends; the Markdown files are the source of truth. Edit them with a text editor.
 - Accounts, a database, or a build step. The server is stateless and reads the files on every request.
 - Remote access. The server binds `127.0.0.1` only. Use an SSH tunnel for a remote machine.
 
@@ -81,6 +82,7 @@ Open http://localhost:8765/.
 - Search: all words must match; `"quoted phrase"` matches exactly. Results are closed cards with hit counts and snippet lines; open one for the full text.
 - Activity strip: one cell per day, click it for the day view, `‹ ›` step one day. Click "Activity" to collapse the strip.
 - Left column: the entries in view and their sections. Click to scroll.
+- "+ Entry": project, date (today), title, body prefilled with the template. Ctrl+Enter appends. The page then shows that day.
 - Filters live in the URL hash, so a reload or a bookmark keeps them.
 
 ## Run as a service (Linux, optional)

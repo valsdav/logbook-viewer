@@ -31,7 +31,7 @@ def parse(name, path):
         elif cur is not None:
             cur["lines"].append(line)
     for e in entries:
-        e["body"] = re.sub(r"\n-{3,}\s*$", "", "\n".join(e.pop("lines")).strip())
+        e["body"] = re.sub(r"(\s*\n-{3,})+\s*$", "", "\n".join(e.pop("lines")).strip())
     return entries
 
 
@@ -68,6 +68,24 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/":
             self.path = "/index.html"
         return super().do_GET()
+
+    def do_POST(self):
+        """Append one entry: JSON {project, date, title, body}. Validated; never edits past entries."""
+        try:
+            d = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
+            path = self.projects[d["project"]]
+            date, title, body = d["date"], d["title"].strip(), d.get("body", "").strip()
+            assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", date) and title and "\n" not in title
+        except (KeyError, ValueError, AssertionError, TypeError) as e:
+            return self.send_error(400, f"bad entry: {e}")
+        if urlparse(self.path).path != "/api/entries":
+            return self.send_error(404)
+        tail = open(path, encoding="utf-8").read()[-64:].rstrip() if os.path.exists(path) else ""
+        sep = "" if not tail else "\n\n" if tail.endswith("---") else "\n\n---\n\n"
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(f"{sep}## {date} — {title}\n\n{body}\n")
+        self.send_response(204)
+        self.end_headers()
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")

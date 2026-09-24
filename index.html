@@ -6,10 +6,10 @@
 <title>Logbook</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='5' y='3' width='23' height='26' rx='4' fill='%232f6fed'/><rect x='3' y='8' width='5' height='3' rx='1.5' fill='%23fff'/><rect x='3' y='15' width='5' height='3' rx='1.5' fill='%23fff'/><rect x='3' y='22' width='5' height='3' rx='1.5' fill='%23fff'/><rect x='12' y='9' width='11' height='2.5' rx='1.25' fill='%23fff'/><rect x='12' y='15' width='11' height='2.5' rx='1.25' fill='%23fff' opacity='.8'/><rect x='12' y='21' width='7' height='2.5' rx='1.25' fill='%23fff' opacity='.6'/></svg>">
 <style>
-  :root { --bg:#fff; --fg:#222; --muted:#777; --line:#e3e3e3; --side:#f6f7f8; --code:#1e2229; --codefg:#e6e6e6;
+  :root { --bg:#fff; --fg:#222; --muted:#777; --line:#e3e3e3; --side:#f6f7f8; --code:#fdf6d8; --codefg:#222;
           --acc:#2f6fed; --h0:#ebedf0; --h1:#c6e48b; --h2:#7bc96f; --h3:#239a3b; --h4:#196127; --mark:#fff3a3; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme=light]) {
-    --bg:#15171a; --fg:#e4e4e4; --muted:#999; --line:#2c2f34; --side:#1b1e22; --code:#0d0f12; --codefg:#dcdcdc;
+    --bg:#15171a; --fg:#e4e4e4; --muted:#999; --line:#2c2f34; --side:#1b1e22; --code:#2e2a17; --codefg:#ece4c4;
     --h0:#23262b; --h1:#0e4429; --h2:#006d32; --h3:#26a641; --h4:#39d353; --mark:#6b5b00; } }
   * { box-sizing:border-box }
   body { margin:0; font:15px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--fg) }
@@ -47,6 +47,14 @@
   #toc time { font-size:11px; margin-right:4px }
   article, .sec { scroll-margin-top:calc(var(--top, 56px) + 12px) }
   @media (max-width:800px) { #toc { display:none } }
+  /* minimap: scaled clone of the entry list on the right edge (vscode style) */
+  body { padding-right:120px } header { margin-right:-120px }
+  #map { position:fixed; right:0; top:var(--top, 56px); bottom:0; width:120px; overflow:hidden; background:var(--side); border-left:1px solid var(--line); cursor:pointer; z-index:1; touch-action:none; user-select:none }
+  #map .clone { position:absolute; left:0; transform-origin:0 0; pointer-events:none }
+  #map .clone pre { overflow:hidden }
+  #map .view { position:absolute; left:0; right:0; background:var(--acc); opacity:.15; pointer-events:none }
+  #map:hover .view { opacity:.25 }
+  @media (max-width:800px) { #map { display:none } body { padding-right:0 } header { margin-right:0 } }
   .dayhead { display:flex; align-items:center; gap:8px; margin:0 0 12px; font-size:18px }
   .count { color:var(--muted); font-size:13px; margin-bottom:12px }
   article { border:1px solid var(--line); border-radius:10px; margin-bottom:14px; padding:0 18px }
@@ -65,9 +73,16 @@
   .body code { font-size:13px; background:var(--side); padding:1px 4px; border-radius:4px }
   .body pre { position:relative; background:var(--code); color:var(--codefg); padding:12px 14px; border-radius:8px; overflow:auto; border-left:4px solid var(--acc) }
   .body pre code { background:none; padding:0; color:inherit }
-  .body pre .copy { position:absolute; top:6px; right:6px; font-size:12px; padding:2px 8px; background:var(--code); color:var(--codefg); border-color:#555 }
+  .body pre .copy { position:absolute; top:6px; right:6px; font-size:12px; padding:2px 8px; background:var(--bg); color:var(--fg) }
   .cmdonly .body > :not(pre) { display:none }  /* ponytail: hides nested pre inside lists too; entries keep code blocks top-level */
   .cmdonly article:not(.hascmd) { display:none }
+  dialog { border:1px solid var(--line); border-radius:12px; background:var(--bg); color:var(--fg); width:min(760px, 92vw); padding:20px }
+  dialog::backdrop { background:rgba(0,0,0,.4) }
+  dialog form { display:grid; gap:10px } dialog .row2 { display:flex; gap:10px } dialog .row2 > * { flex:1 }
+  dialog input, dialog select, dialog textarea { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit }
+  dialog textarea { min-height:320px; font:13px/1.45 ui-monospace, monospace; resize:vertical }
+  dialog .actions { display:flex; gap:8px; justify-content:flex-end } dialog .err { color:#d33; font-size:13px; margin-right:auto }
+  dialog button.primary { background:var(--acc); color:#fff; border-color:var(--acc) }
   mark { background:var(--mark); color:inherit; border-radius:2px }
   .empty { color:var(--muted); padding:40px 0; text-align:center }
   @media (max-width:800px) { main{padding:16px} }
@@ -81,6 +96,7 @@
   <input id="from" type="date"><span>–</span><input id="to" type="date">
   <button id="today">Today</button><button id="clear">Clear</button>
   <label class="chk"><input type="checkbox" id="cmdonly">commands only</label>
+  <button id="new" title="append an entry to a logbook">+ Entry</button>
   <span id="status"></span>
 </header>
 <details id="heatbar" open><summary>Activity <select id="year"></select></summary><div class="strip"><div id="heat"></div></div></details>
@@ -92,6 +108,15 @@
     <div id="list"></div>
   </div>
 </main>
+<div id="map"><div class="view"></div></div>
+<dialog id="dlg">
+  <form id="form">
+    <div class="row2"><select id="f-project" required></select><input id="f-date" type="date" required></div>
+    <input id="f-title" placeholder="short title of the session or step" required>
+    <textarea id="f-body" spellcheck="false"></textarea>
+    <div class="actions"><span class="err" id="f-err"></span><button type="button" id="f-cancel">Cancel</button><button class="primary" type="submit">Append</button></div>
+  </form>
+</dialog>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 const $ = id => document.getElementById(id);
@@ -244,7 +269,54 @@ $('list').onclick = async e => {
 $('toc').onclick = e => { const id = e.target.closest('a')?.dataset.to; if (id) { e.preventDefault(); $(id).scrollIntoView({block: 'start'}); } };
 $('heatbar').ontoggle = e => { try { localStorage.heat = e.target.open ? '1' : '0'; } catch {} };
 try { if (localStorage.heat === '0') $('heatbar').open = false; } catch {}
-window.onresize = () => document.documentElement.style.setProperty('--top', document.querySelector('header').offsetHeight + 'px');
+window.onresize = () => { document.documentElement.style.setProperty('--top', document.querySelector('header').offsetHeight + 'px'); drawMap(); };
+// ---- minimap: a scaled clone of the list; the clone slides so the viewport band stays inside the strip
+const map = $('map'), view = map.querySelector('.view');
+let clone, scale = 1, listTop = 0;
+const docH = () => document.documentElement.scrollHeight;
+const hdrH = () => document.querySelector('header').offsetHeight;  // sticky header hides this much of the viewport
+const off = () => Math.max(0, (docH() - listTop) * scale - map.clientHeight) * scrollY / Math.max(1, docH() - innerHeight);
+function drawMap() {
+  const list = $('list');
+  clone?.remove(); clone = null;
+  if (map.hidden = docH() <= innerHeight) return;
+  clone = list.cloneNode(true); clone.className = 'clone'; clone.id = '';
+  clone.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+  scale = map.clientWidth / list.offsetWidth;
+  listTop = list.getBoundingClientRect().top + scrollY;
+  clone.style.width = list.offsetWidth + 'px'; clone.style.transform = `scale(${scale})`;
+  map.prepend(clone);
+  trackMap();
+}
+function trackMap() {  // strip y = (page y - listTop) * scale - off
+  if (!clone) return;
+  const o = off(), a = Math.max(scrollY + hdrH(), listTop), b = scrollY + innerHeight;
+  clone.style.top = -o + 'px';
+  view.style.top = (a - listTop) * scale - o + 'px'; view.style.height = Math.max(0, b - a) * scale + 'px';
+}
+const mapTo = e => scrollTo(0, listTop + (e.clientY - map.getBoundingClientRect().top + off()) / scale - innerHeight / 2);
+map.onpointerdown = e => { map.setPointerCapture(e.pointerId); mapTo(e); };
+map.onpointermove = e => { if (e.buttons) mapTo(e); };
+new ResizeObserver(drawMap).observe($('list'));  // covers render(), details open/close, image loads
+addEventListener('scroll', trackMap, {passive: true});
+
+// ---- new entry (appended by the server in the skill's format; past entries are never touched)
+const TEMPLATE = `**Context:** \n\n**What was done**\n- \n\n**What changed**\n- \n\n**Decisions**\n- \n\n**Results**\n- \n\n**Commands**\n\`\`\`bash\n\n\`\`\`\n\n**Open questions / next steps**\n- `;
+$('new').onclick = () => {
+  $('f-project').innerHTML = DATA.projects.map(p => `<option>${esc(p)}</option>`).join('');
+  $('f-project').value = st.project || DATA.projects[0] || '';
+  $('f-date').value = localISO(); $('f-title').value = ''; $('f-body').value = TEMPLATE; $('f-err').textContent = '';
+  $('dlg').showModal(); $('f-title').focus();
+};
+$('f-cancel').onclick = () => $('dlg').close();
+$('form').onsubmit = async e => {
+  e.preventDefault();
+  const entry = {project: $('f-project').value, date: $('f-date').value, title: $('f-title').value.trim(), body: $('f-body').value};
+  const r = await fetch('/api/entries', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(entry)}).catch(() => ({ok: false, statusText: 'server unreachable'}));
+  if (!r.ok) { $('f-err').textContent = r.statusText || 'failed'; return; }
+  $('dlg').close(); st.from = st.to = entry.date; st.year = entry.date.slice(0, 4); st.q = ''; writeHash(); await load();
+};
+$('f-body').onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('form').requestSubmit(); };
 document.onkeydown = e => { if (e.key === '/' && document.activeElement !== $('q')) { e.preventDefault(); $('q').focus(); } };
 window.onhashchange = () => { readHash(); render(); };
 
