@@ -1,4 +1,4 @@
-# logbook-viewer
+# <img src="desktop/logbook.svg" width="32" align="top"> logbook-viewer
 
 A development logbook is a running `LOGBOOK.md` in a repository: one dated entry per work session, written by Claude Code with the `logbook` skill. It records what was done, what changed, the decisions and the commands, so the project history stays readable months later.
 
@@ -10,6 +10,8 @@ This repository holds the two halves of that workflow:
 | `server.py`, `index.html` | A local web viewer that **reads** the logbooks of several projects. |
 
 The skill and the viewer share one contract: the entry format below. Nothing else links them. The viewer only appends, never edits.
+
+![The viewer: top bar with project, search and period filters, the year activity strip, the entry list on the left and the entries with command blocks on the right](docs/screenshot.png)
 
 ## Scope
 
