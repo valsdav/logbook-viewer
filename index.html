@@ -65,6 +65,7 @@
   time { color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap }
   .head h2 { font-size:16px; margin:0; font-weight:600; flex:1 1 300px }
   .hits { font-size:12px; color:var(--muted); white-space:nowrap }
+  .goto { font-size:12px; color:var(--acc); white-space:nowrap; text-decoration:none } .goto:hover { text-decoration:underline }
   .snips { margin:6px 0 0; padding:0; list-style:none; font-size:13px; color:var(--muted) }
   .snips li { white-space:pre-wrap; overflow:hidden; text-overflow:ellipsis; border-left:2px solid var(--line); padding-left:8px; margin:2px 0 }
   .snips code { font-family:ui-monospace, monospace; font-size:12px }
@@ -183,11 +184,11 @@ function render() {
   const toc = [];
   ents.forEach((e, i) => {
     const a = document.createElement('article');
-    a.id = 'e' + i;
+    a.id = 'e' + i; a.dataset.eid = e.id;
     let snip = '';
     if (searching) {
       const {out, hits} = snippets(e, ts); hitsTotal += hits;
-      snip = `<span class="hits">${hits} hit${hits === 1 ? '' : 's'}</span><ul class="snips">${out.map(s => `<li><code>${s}</code></li>`).join('')}</ul>`;
+      snip = `<span class="hits">${hits} hit${hits === 1 ? '' : 's'}</span><a class="goto" href="#" data-goto="${e.id}">go to entry ›</a><ul class="snips">${out.map(s => `<li><code>${s}</code></li>`).join('')}</ul>`;
     }
     a.innerHTML = `<details${searching ? '' : ' open'}><summary><div class="head"><span class="proj">${esc(e.project)}</span><time>${e.date}</time><h2>${esc(e.title)}</h2>${searching ? snip.split('<ul')[0] : ''}</div>${searching ? '<ul' + snip.split('<ul')[1] : ''}</summary>
       <div class="body">${window.marked ? marked.parse(e.body) : '<pre>' + esc(e.body) + '</pre>'}</div></details>`;
@@ -260,6 +261,14 @@ $('dayhead').onclick = e => {
   st.from = st.to = d.toISOString().slice(0, 10); st.year = st.from.slice(0, 4); upd();
 };
 $('list').onclick = async e => {
+  const g = e.target.dataset.goto;
+  if (g) {  // leave the search: show the entry's day and scroll to it
+    e.preventDefault();
+    const ent = DATA.entries.find(x => x.id === g);
+    st.q = ''; st.from = st.to = ent.date; st.year = ent.date.slice(0, 4); upd();
+    document.querySelector(`[data-eid="${CSS.escape(g)}"]`)?.scrollIntoView({block: 'start'});
+    return;
+  }
   if (!e.target.classList.contains('copy')) return;
   const text = e.target.parentElement.querySelector('code').textContent;
   try { await navigator.clipboard.writeText(text); }

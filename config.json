@@ -1,6 +1,8 @@
 {
   "port": 8765,
   "projects": [
-    {"name": "unfolding-fnf", "path": "/afs/cern.ch/work/d/dvalsecc/private/unfolding-fnf/LOGBOOK.md"}
+    {"name": "unfolding-fnf", "path": "/afs/cern.ch/work/d/dvalsecc/private/unfolding-fnf/LOGBOOK.md"},
+    {"name": "fnf", "path":"/afs/cern.ch/work/d/dvalsecc/private/profiling-flows/LOGBOOK.md"}
+
   ]
 }
